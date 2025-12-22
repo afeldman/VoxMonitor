@@ -146,6 +146,69 @@ VoxMonitor extends `deepsuite.lightning_base.BaseTrainer` to leverage:
 
 Future: Register audio classification as a head in `deepsuite.registry.HeadRegistry` for multi-domain livestock inspection pipelines.
 
+### DeepSuite HeadRegistry
+
+VoxMonitor registriert sich als Head in der globalen `HeadRegistry` unter dem Schlüssel `voxmonitor.audio.multitask`. Damit kannst du das Modul überall in DeepSuite-Pipelines referenzieren.
+
+Minimalbeispiel (direkt aus Registry bauen und trainieren):
+
+```python
+from deepsuite.registry import HeadRegistry
+from voxmonitor import register_voxmonitor_head
+from voxmonitor.data import SoundwelDataModule
+import pytorch_lightning as pl
+
+# Optional explizit registrieren (import von voxmonitor registriert bereits automatisch)
+register_voxmonitor_head()
+
+dm = SoundwelDataModule(
+  root_dir="data/audio",
+  key_xlsx="data/SoundwelDatasetKey.xlsx",
+  label_columns=["age", "sex", "valence", "context"],
+)
+dm.setup("fit")
+
+factory = HeadRegistry.get("voxmonitor.audio.multitask")
+lit = factory(
+  num_classes={"age": 4, "sex": 2, "valence": 3, "context": 5},
+  lr=1e-3,
+  weight_decay=1e-5,
+  embed_dim=128,
+)
+
+trainer = pl.Trainer(max_epochs=50)
+trainer.fit(lit, dm)
+```
+
+Beispiel mit DeepSuite-Trainer-Helper:
+
+```python
+from deepsuite.lightning_base.trainer import train_heads_with_registry
+from voxmonitor.data import SoundwelDataModule
+
+dm = SoundwelDataModule(
+  root_dir="data/audio",
+  key_xlsx="data/SoundwelDatasetKey.xlsx",
+  label_columns=["age", "sex", "valence", "context"],
+)
+
+train_heads_with_registry(
+  heads=[
+    {
+      "key": "voxmonitor.audio.multitask",
+      "params": {
+        "num_classes": {"age": 4, "sex": 2, "valence": 3, "context": 5},
+        "lr": 1e-3,
+        "weight_decay": 1e-5,
+        "embed_dim": 128,
+      },
+    },
+  ],
+  data_module=dm,
+  trainer_kwargs={"max_epochs": 50},
+)
+```
+
 ## Development
 
 ### Code Quality

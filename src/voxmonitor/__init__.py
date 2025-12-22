@@ -30,6 +30,7 @@ __version__ = "0.2.0"
 from voxmonitor.model import MultiTaskAudioModule, MelSpectrogramExtractor, AudioCNN
 from voxmonitor.data import SoundwelDataset, SoundwelDataModule
 from voxmonitor.lightning import VoxMonitorLightningModule
+from voxmonitor.registry import register_voxmonitor_head
 
 __all__ = [
     "MultiTaskAudioModule",
@@ -38,4 +39,5 @@ __all__ = [
     "SoundwelDataset",
     "SoundwelDataModule",
     "VoxMonitorLightningModule",
+    "register_voxmonitor_head",
 ]

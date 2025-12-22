@@ -41,7 +41,7 @@ dev = [
 ]
 
 [project.scripts]
-voxmonitor-train = "voxmonitor.train:main"
+voxmonitor-train = "voxmonitor.train_pl:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/voxmonitor"]
