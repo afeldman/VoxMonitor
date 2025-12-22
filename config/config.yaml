@@ -1,0 +1,58 @@
+data:
+  root_dir: data
+  key_xlsx: data/SoundwelDatasetKey.xlsx
+  audio_column_candidates:
+    ["filename", "file", "filepath", "path", "wav", "audio"]
+  sample_rate: 16000
+  mono: true
+  # Train/val split by fraction (if no canonical split is present in XLSX)
+  val_fraction: 0.15
+
+labels:
+  # Columns in XLSX for multi-task classification
+  columns: ["age", "sex", "valence", "context"]
+
+mel:
+  n_fft: 1024
+  hop_length: 256
+  n_mels: 128
+  fmin: 20
+  fmax: 8000
+  power: 2.0
+  # Convert to dB
+  to_db: true
+
+augment:
+  enabled: true
+  # Dynamic import path to load aptt augmentor factory
+  # Example: "aptt.audio.augment:build_augmentor"
+  factory_path: ""
+  # If factory_path is empty, augmentation is skipped gracefully
+  params: {}
+
+train:
+  batch_size: 32
+  num_workers: 4
+  max_epochs: 30
+  lr: 1e-3
+  weight_decay: 1e-4
+  seed: 42
+  checkpoint_dir: checkpoints
+  device: "auto" # "cpu" | "cuda" | "mps" | "auto"
+
+model:
+  backbone: mobilenet_v2
+  pretrained: true
+  # Optional: freeze backbone for warmup epochs
+  warmup_freeze_epochs: 0
+  # Optional: dynamischer Modell-Factory-Pfad (z.B. aus aptt)
+  # Beispiel: "aptt.models.audio:build_multitask_model"
+  factory_path: ""
+
+onnx:
+  enabled: true
+  opset: 17
+  export_dir: exports/onnx
+  # Optional: dynamischer Exporter (z.B. aus aptt)
+  # Beispiel: "aptt.export.onnx:export_model"
+  exporter_path: ""
