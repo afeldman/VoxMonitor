@@ -1,3 +1,7 @@
+<p align="center">
+    <img src="docs/logo.png" alt="VoxMonitor" width="140" />
+</p>
+
 # VoxMonitor
 
 Trainingspipeline für Klassifikation von Schweine-Lauten (Grunzen/Quieken/…):
