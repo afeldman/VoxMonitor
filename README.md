@@ -4,82 +4,195 @@
 
 # VoxMonitor
 
-Trainingspipeline für Klassifikation von Schweine-Lauten (Grunzen/Quieken/…):
+Multi-task pig vocalization classification and synthesis using DeepSuite and PyTorch Lightning.
 
-- Preprocessing: FFT → Mel-Spektrogramm
-- CNN-Backbone (MobileNetV2)
-- Multi-Task Heads: age, sex, valence, context
-- Augmentierung: über aptt-Framework (dynamisch ladbar)
-  - Optional: aptt-Lightning-Pipeline integrierbar (Modell-Factory, Augmentor, ONNX-Exporter)
+## Features
 
-## Setup (uv + pyproject)
+- **Mel-spectrogram extraction**: Librosa-compatible feature extraction for audio signals
+- **Multi-task CNN backbone**: Shared audio encoder with task-specific classification heads (age, sex, valence, context)
+- **PyTorch Lightning training**: Full training pipeline with checkpointing, early stopping, and model export
+- **DeepSuite integration**: Leverages shared deep learning infrastructure (BaseTrainer, callbacks, metrics)
+- **uv environment management**: Reproducible Python environment with dependency locking
 
-1. Optional: Python-Umgebung aktivieren/erstellen
+## Installation
+
+### Using `uv`
 
 ```bash
-uv venv
-source .venv/bin/activate
+cd VoxMonitor
+uv sync
 ```
 
-2. Abhängigkeiten installieren
+### Manual pip
 
 ```bash
-uv pip install -e .
+pip install -e .
+pip install -e ".[dev]"  # Include development dependencies
 ```
 
-3. aptt lokal installieren (Editable Mode)
+## Quick Start
+
+### Training
 
 ```bash
-uv pip install -e /Users/anton.feldmann/Projects/ai/aptt/
+# Train using default config
+uv run voxmonitor-train
+
+# Train with custom config
+uv run voxmonitor-train --config path/to/config.yaml
 ```
 
-4. Konfiguration prüfen: siehe [config/config.yaml](config/config.yaml)
-
-## Training mit aptt
-
-Die Trainings- und Export-Pipeline wird vollständig über das aptt-Projekt ausgeführt (Lightning, Augmentor, ONNX-Export). Installiere aptt im Editable-Mode und nutze dessen Trainings-CLI oder Module.
-
-Beispiel (Platzhalter, bitte durch aptt-spezifische Kommandos ersetzen):
+Or run directly:
 
 ```bash
-# aptt installieren
-uv pip install -e /Users/anton.feldmann/Projects/ai/aptt/
-
-# Training starten (Beispiel)
-uv run python -m aptt.train --config config/config.yaml
-
-# ONNX-Export (Beispiel)
-uv run python -m aptt.export.onnx --ckpt checkpoints/best.pt --out exports/onnx/model.onnx
+uv run python -m voxmonitor.train_pl config/config.yaml
 ```
 
-uv run python src/voxmonitor/train_pl.py
-uv run voxmonitor-train-pl
+### Configuration
 
-````
+Edit `config/config.yaml` to customize training:
 
-Checkpoints werden in [checkpoints](checkpoints) abgelegt. Der beste Stand liegt in `best.pt`.
+```yaml
+data:
+  root_dir: data/audio
+  key_xlsx: data/SoundwelDatasetKey.xlsx
+  sample_rate: 16000
+  val_fraction: 0.2
 
-## Hinweise
+labels:
+  columns:
+    - age
+    - sex
+    - valence
+    - context
 
-- Die Spaltennamen für Labels sind in [config/config.yaml](config/config.yaml) unter `labels.columns` konfiguriert.
-- Die Audio-Dateiliste wird aus [data/SoundwelDatasetKey.xlsx](data/SoundwelDatasetKey.xlsx) gelesen; die Spalte mit Dateinamen wird heuristisch erkannt oder kann über `data.audio_column_candidates` erzwungen werden.
-- Für on-device und Server-Inferenz folgen separate Module (TFLite/Core ML und FastAPI). Zuerst wird die Klassifikations-Pipeline stabilisiert.
- Optionaler aptt-Exporter: setze in [config/config.yaml](config/config.yaml) `onnx.exporter_path` auf den entsprechenden aptt-Pfad.
+train:
+  batch_size: 32
+  lr: 1e-3
+  weight_decay: 1e-5
+  max_epochs: 100
+  checkpoint_dir: ckpt/voxmonitor
+  device: auto  # auto, cuda, mps, cpu
 
-## ONNX Export
+model:
+  embed_dim: 128
+```
+
+### Python API
+
+```python
+from voxmonitor.data import SoundwelDataModule
+from voxmonitor.lightning import VoxMonitorLightningModule
+import pytorch_lightning as pl
+
+# Initialize data module
+dm = SoundwelDataModule(
+    root_dir="data/audio",
+    key_xlsx="data/SoundwelDatasetKey.xlsx",
+    label_columns=["age", "sex", "valence", "context"],
+    batch_size=32,
+)
+
+# Initialize model
+lit = VoxMonitorLightningModule(
+    num_classes={"age": 4, "sex": 2, "valence": 3, "context": 5},
+    lr=1e-3,
+)
+
+# Train
+trainer = pl.Trainer(max_epochs=100)
+trainer.fit(lit, dm)
+
+# Export
+import torch
+torch.save(lit.module.state_dict(), "voxmonitor_final.pt")
+```
+
+## Architecture
+
+### Data Pipeline
+
+- **SoundwelDataset**: Loads audio from files, extracts Mel-spectrograms, maps labels to class indices
+- **SoundwelDataModule**: PyTorch Lightning DataModule with train/val splitting and balanced batching
+
+### Model Architecture
+
+```
+Input Audio [B, time_steps]
+    ↓
+MelSpectrogramExtractor [B, 1, n_mels=64, time_frames]
+    ↓
+AudioCNN Backbone (residual blocks) [B, embed_dim=128]
+    ├→ Classification Head (age) [B, num_classes_age]
+    ├→ Classification Head (sex) [B, num_classes_sex]
+    ├→ Classification Head (valence) [B, num_classes_valence]
+    └→ Classification Head (context) [B, num_classes_context]
+```
+
+### Training
+
+- **VoxMonitorLightningModule**: Multi-task learning with equal loss weighting
+- **Loss**: Cross-entropy per task, summed and normalized
+- **Callbacks**: ModelCheckpoint (top-3), EarlyStopping (patience=10)
+- **Optimizer**: Adam with configurable learning rate and weight decay
+
+## DeepSuite Integration
+
+VoxMonitor extends `deepsuite.lightning_base.BaseTrainer` to leverage:
+
+- Unified training interface across all DeepSuite projects
+- Automatic logging and checkpoint management
+- Modular model export (TorchScript, ONNX, TensorRT)
+
+Future: Register audio classification as a head in `deepsuite.registry.HeadRegistry` for multi-domain livestock inspection pipelines.
+
+## Development
+
+### Code Quality
 
 ```bash
-uv run voxmonitor-export-onnx
-## Struktur
+# Lint with ruff
+uv run ruff check src/
 
-- [config/config.yaml](config/config.yaml): zentrale Konfiguration (Datenpfade, Labels, Augmentor-/Modell-Factory-Pfade, ONNX-Exporter).
-- [data/SoundwelDatasetKey.xlsx](data/SoundwelDatasetKey.xlsx): Label- und Dateischlüssel.
-- [pyproject.toml](pyproject.toml): minimale Projektmetadaten; Abhängigkeiten über aptt.
+# Format with black
+uv run black src/
 
-## Referenzen
+# Type check with mypy
+uv run mypy src/
 
-- Nature-Artikel (Konzeptgrundlage): https://www.nature.com/articles/s41598-022-07174-8
-- Datensatz/Material (Zenodo): https://zenodo.org/records/8252482
+# Run tests
+uv run pytest tests/
+```
 
-Die Ausgabe landet in `exports/onnx/model.onnx`. Konfigurierbar über `onnx.export_dir`, `onnx.opset` und optionalen aptt-Exporter.
-````
+### Project Structure
+
+```
+VoxMonitor/
+├── src/voxmonitor/
+│   ├── __init__.py          # Package exports
+│   ├── model.py             # Audio CNN, Mel-spectrogram extractor
+│   ├── data.py              # SoundwelDataset, SoundwelDataModule
+│   ├── lightning.py         # VoxMonitorLightningModule
+│   ├── train_pl.py          # Training script and CLI entrypoint
+│   ├── train_classifier.py  # Legacy (deprecated)
+│   └── utils.py             # Utilities
+├── config/
+│   └── config.yaml          # Training configuration
+├── data/
+│   └── SoundwelDatasetKey.xlsx  # Dataset metadata
+├── ckpt/                    # Checkpoints and exports
+├── tests/                   # Unit tests
+├── pyproject.toml           # Project metadata (uv, hatchling)
+└── README.md               # This file
+```
+
+## References
+
+- [PyTorch Audio](https://pytorch.org/audio/stable/index.html)
+- [PyTorch Lightning](https://lightning.ai/)
+- [DeepSuite](../DeepSuite/)
+- Soundwel Pig Vocalization Dataset
+
+## License
+
+Apache 2.0
