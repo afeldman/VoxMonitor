@@ -11,7 +11,11 @@ Multi-task pig vocalization classification and synthesis using DeepSuite and PyT
 - **Mel-spectrogram extraction**: Librosa-compatible feature extraction for audio signals
 - **Multi-task CNN backbone**: Shared audio encoder with task-specific classification heads (age, sex, valence, context)
 - **PyTorch Lightning training**: Full training pipeline with checkpointing, early stopping, and model export
-- **DeepSuite integration**: Leverages shared deep learning infrastructure (BaseTrainer, callbacks, metrics)
+- **DeepSuite integration**: Leverages shared deep learning infrastructure
+  - Multi-format model export (ONNX, TensorScript, TensorRT, Kendryte, TFLite)
+  - MLflow experiment tracking
+  - Automatic batch size tuning
+  - Rich training callbacks
 - **uv environment management**: Reproducible Python environment with dependency locking
 
 ## Installation
@@ -22,6 +26,8 @@ Multi-task pig vocalization classification and synthesis using DeepSuite and PyT
 cd VoxMonitor
 uv sync
 ```
+
+This will install VoxMonitor and link to the local DeepSuite development version.
 
 ### Manual pip
 
@@ -73,9 +79,33 @@ train:
   max_epochs: 100
   checkpoint_dir: ckpt/voxmonitor
   device: auto  # auto, cuda, mps, cpu
+  
+  # DeepSuite Features
+  mlflow_experiment: null  # Enable MLflow logging with experiment name
+  export_formats: ["onnx", "torchscript"]  # Export trained models
 
 model:
   embed_dim: 128
+```
+
+### Model Export
+
+Enable multi-format model export by setting `export_formats` in the config:
+
+```yaml
+train:
+  export_formats: ["onnx", "torchscript", "tensor_rt"]  # Multiple formats supported
+```
+
+Models will be automatically exported during training by DeepSuite callbacks.
+
+### MLflow Integration
+
+Enable experiment tracking by setting `mlflow_experiment`:
+
+```yaml
+train:
+  mlflow_experiment: "voxmonitor-experiments"
 ```
 
 ### Python API
@@ -83,7 +113,7 @@ model:
 ```python
 from voxmonitor.data import SoundwelDataModule
 from voxmonitor.lightning import VoxMonitorLightningModule
-import pytorch_lightning as pl
+from deepsuite.lightning_base import BaseTrainer
 
 # Initialize data module
 dm = SoundwelDataModule(
@@ -99,6 +129,25 @@ lit = VoxMonitorLightningModule(
     lr=1e-3,
 )
 
+# Train with DeepSuite BaseTrainer
+trainer = BaseTrainer(
+    log_dir="logs",
+    model_output_dir="models",
+    export_formats=["onnx", "torchscript"],
+    mlflow_experiment="voxmonitor",
+)
+
+trainer.fit(lit, datamodule=dm)
+```
+
+## DeepSuite Integration
+
+VoxMonitor is tightly integrated with DeepSuite:
+
+- **BaseModule inheritance**: `VoxMonitorLightningModule` extends DeepSuite's `BaseModule` for standardized training
+- **HeadRegistry**: Automatically registers VoxMonitor in DeepSuite's global registry under key `voxmonitor.audio.multitask`
+- **Unified callbacks**: Supports all DeepSuite export and logging callbacks
+- **Local development**: pyproject.toml links to local DeepSuite for joint development
 # Train
 trainer = pl.Trainer(max_epochs=100)
 trainer.fit(lit, dm)

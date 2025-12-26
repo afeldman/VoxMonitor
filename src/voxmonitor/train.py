@@ -8,7 +8,7 @@ Usage:
 import os
 import logging
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 import yaml
 
 import torch
@@ -93,7 +93,7 @@ def main(
   logger.info("Initializing data module...")
   dm = SoundwelDataModule(
       root_dir=root_dir,
-      key_xlsx=key_xlsx,
+      csv_path=key_xlsx,
       label_columns=label_columns,
       batch_size=batch_size,
       num_workers=num_workers,
@@ -126,21 +126,25 @@ def main(
       save_top_k=3,
       verbose=True,
   )
-
+  
   early_stop = EarlyStopping(
       monitor="val_loss",
-      patience=10,
+      patience=train_cfg.get("patience", 10),
       mode="min",
       verbose=True,
   )
 
-  logger.info("Creating trainer...")
+  # Get export formats from config (optional)
+  export_formats = train_cfg.get("export_formats", ["onnx"])  # e.g., ["onnx", "torchscript"]
+  mlflow_experiment = train_cfg.get("mlflow_experiment", None)
+
+  logger.info("Creating PyTorch Lightning Trainer...")
   trainer = pl.Trainer(
       max_epochs=max_epochs,
+      callbacks=[early_stop, ckpt_cb],
+      default_root_dir=ckpt_dir,
       accelerator=device,
       devices=1 if device != "cpu" else None,
-      callbacks=[ckpt_cb, early_stop],
-      logger=False,
       enable_progress_bar=True,
   )
 
@@ -156,8 +160,12 @@ def main(
 
     export_path = Path(ckpt_dir) / "voxmonitor_final.pt"
     logger.info(f"Exporting model to {export_path}...")
-    torch.save(lit.module.state_dict(), export_path)
+    torch.save(lit.model.state_dict(), export_path)
     logger.info("Export complete!")
+    
+  if export_formats:
+    logger.info(f"Models exported in formats: {', '.join(export_formats)}")
+    logger.info(f"Export directory: {ckpt_dir}")
 
 
 if __name__ == "__main__":

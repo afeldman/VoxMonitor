@@ -1,5 +1,0 @@
-# Hinweis: Abhängigkeiten werden nun über pyproject.toml und uv verwaltet.
-# Dieses requirements.txt ist obsolet und dient nur der Orientierung.
-# Bitte verwenden:
-#   uv venv && source .venv/bin/activate
-#   uv pip install -e .

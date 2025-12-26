@@ -1,0 +1,68 @@
+✅ Soundwell Integration Complete
+
+## Struktur
+
+**VoxMonitor** (Spezialisiert auf Soundwell Pig Vocalization)
+├── zenodo_download.py          Dataset von Zenodo herunterladbar
+├── data_soundwell.py           SoundwellDataset + DataModule  
+├── train_soundwell.py          Training mit ONNX Export
+├── cli.py                      CLI Commands
+└── SOUNDWELL_GUIDE.md          Komplette Dokumentation
+
+**DeepSuite** (General-Purpose Deep Learning Framework)
+├── BaseModule, BaseTrainer     Training Infrastructure
+├── MelSpectrogramExtractor     Audio Preprocessing
+├── ONNXExportCallback          Model Export
+└── Unterstützung für alle Audio/Vision Tasks
+
+## Quick Start
+
+```bash
+cd VoxMonitor && uv sync
+
+# Dataset herunterladen
+uv run voxmonitor-download
+
+# Training mit ONNX Export
+uv run voxmonitor-train-soundwell --epochs 50
+
+# Output
+models/soundwell/soundwell.onnx  ← Für OmniEngine!
+```
+
+## Commands
+
+- `uv run voxmonitor-download` - Download Soundwell from Zenodo
+- `uv run voxmonitor-train-soundwell` - Train with ONNX export
+- `uv run voxmonitor-train-soundwell --batch-size 16 --lr 0.001 --epochs 100`
+
+## Key Features
+
+✅ Automatischer Dataset Download von Zenodo (mit Checksum)
+✅ Multi-Task Learning (age, sex, valence, context)
+✅ ONNX Export für OmniEngine Production Deployment
+✅ MLflow Experiment Tracking
+✅ TensorBoard Logging
+✅ Production-Ready mit uv & PyTorch Lightning
+
+## Integration
+
+- VoxMonitor nutzt DeepSuite's BaseModule, BaseTrainer, MelSpectrogramExtractor
+- Soundwell-spezialisiert (nicht in DeepSuite)
+- ONNX Model für OmniEngine Inferenz Pipeline
+
+## Files Changed
+
+New:
+- src/voxmonitor/zenodo_download.py
+- src/voxmonitor/data_soundwell.py  
+- src/voxmonitor/train_soundwell.py
+- src/voxmonitor/cli.py
+- SOUNDWELL_GUIDE.md
+
+Updated:
+- pyproject.toml (scripts, deps)
+- README.md
+
+Removed from DeepSuite:
+- soundwell-spezifische Dateien (gehören zu VoxMonitor)

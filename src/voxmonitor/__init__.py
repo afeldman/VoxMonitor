@@ -27,10 +27,10 @@ Example:
 
 __version__ = "0.2.0"
 
-from voxmonitor.model import MultiTaskAudioModule, MelSpectrogramExtractor, AudioCNN
+from voxmonitor.model import MultiTaskAudioModule, AudioCNN
 from voxmonitor.data import SoundwelDataset, SoundwelDataModule
 from voxmonitor.lightning import VoxMonitorLightningModule
-from voxmonitor.registry import register_voxmonitor_head
+from voxmonitor.registry import register_voxmonitor_head, HeadRegistry
 
 __all__ = [
     "MultiTaskAudioModule",
@@ -40,4 +40,5 @@ __all__ = [
     "SoundwelDataModule",
     "VoxMonitorLightningModule",
     "register_voxmonitor_head",
+    "HeadRegistry",
 ]

@@ -17,3 +17,18 @@ exports/
 .vscode/
 *.log
 data/
+
+# uv lock file and cache
+uv.lock
+.uv/
+ckpt/
+
+# PyTorch/ML artifacts
+*.onnx
+*.pt
+*.pth
+lightning_logs/
+wandb/
+
+# Config files (local overrides)
+config_local.yaml

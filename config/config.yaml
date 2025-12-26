@@ -1,9 +1,10 @@
 # VoxMonitor Training Configuration
 # Pig vocalization classification with multi-task learning
+# Integrated with DeepSuite for advanced training capabilities
 
 data:
-  root_dir: data/audio
-  key_xlsx: data/SoundwelDatasetKey.xlsx
+  root_dir: /Volumes/Backup/backup/toennies-ai/Soundwell/Soundwel
+  key_xlsx: /Volumes/Backup/backup/toennies-ai/Soundwell/SoundwelDatasetKey.csv
   sample_rate: 16000
   max_length_sec: 5.0
   val_fraction: 0.2
@@ -25,6 +26,9 @@ train:
   seed: 42
   checkpoint_dir: ckpt/voxmonitor
   device: auto  # auto | cuda | mps | cpu
-
-model:
+  
+  # DeepSuite Integration
+  mlflow_experiment: null  # Set to experiment name to enable MLflow logging
+  export_formats: []  # Options: ["onnx", "torchscript", "tensor_rt", "kendryte", "tflite"]
+  # Example: ["onnx", "torchscript"]
   embed_dim: 128
