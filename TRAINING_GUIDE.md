@@ -51,14 +51,13 @@ SoundwelDataset(
 ## 🎯 Lokale Daten-Struktur
 
 ```
-/Volumes/Backup/backup/toennies-ai/Soundwell/
-├── Soundwel/                    # Audio-Dateien (WAV)
-│   ├── ETHZETHZPositivePositivepig1510.wav
-│   ├── ETHZETHZIsolationIsolationpig151.wav
-│   └── ... (3000+ Files)
+data/
+├── audio/                       # Audio-Dateien (WAV)
+│   ├── sample1.wav
+│   ├── sample2.wav
+│   └── ...
 ├── SoundwelDatasetKey.csv       # Metadaten + Labels
-├── SoundwelDatasetKey.xlsx
-└── training/                    # Vorherige Training-Artefakte
+└── training/                    # Training-Artefakte
 ```
 
 **CSV-Struktur:**

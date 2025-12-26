@@ -148,7 +148,8 @@ def main(
     model_output_dir=ckpt_dir,
     early_stopping=early_stop,
     model_checkpoint=ckpt_cb,
-    enable_progress_bar=True,
+    enable_progress_bar = True,
+    export_formats=export_formats,
     fast_dev_run=fast_dev_run,
   )
 
