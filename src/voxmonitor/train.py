@@ -14,6 +14,7 @@ import yaml
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from deepsuite.lightning_base.trainer import BaseTrainer
 
 from voxmonitor.data import SoundwelDataModule
 from voxmonitor.lightning import VoxMonitorLightningModule
@@ -76,6 +77,7 @@ def main(
   weight_decay = train_cfg.get("weight_decay", 1e-5)
   seed = train_cfg.get("seed", 42)
   device = get_device(train_cfg.get("device", "auto"))
+  fast_dev_run = train_cfg.get("fast_dev_run", False)
 
   ckpt_dir = checkpoint_dir or train_cfg.get("checkpoint_dir", "ckpt/voxmonitor")
   os.makedirs(ckpt_dir, exist_ok=True)
@@ -138,14 +140,16 @@ def main(
   export_formats = train_cfg.get("export_formats", ["onnx"])  # e.g., ["onnx", "torchscript"]
   mlflow_experiment = train_cfg.get("mlflow_experiment", None)
 
-  logger.info("Creating PyTorch Lightning Trainer...")
-  trainer = pl.Trainer(
-      max_epochs=max_epochs,
-      callbacks=[early_stop, ckpt_cb],
-      default_root_dir=ckpt_dir,
-      accelerator=device,
-      devices=1 if device != "cpu" else None,
-      enable_progress_bar=True,
+  logger.info("Creating DeepSuite BaseTrainer...")
+  # Important: Do not pass accelerator/devices here to avoid duplicate kwargs.
+  trainer = BaseTrainer(
+    max_epochs=max_epochs,
+    log_dir=ckpt_dir,
+    model_output_dir=ckpt_dir,
+    early_stopping=early_stop,
+    model_checkpoint=ckpt_cb,
+    enable_progress_bar=True,
+    fast_dev_run=fast_dev_run,
   )
 
   logger.info("Starting training...")

@@ -8,7 +8,6 @@ data:
   sample_rate: 16000
   max_length_sec: 5.0
   val_fraction: 0.2
-
 labels:
   # Multi-task classification targets
   columns:
@@ -16,19 +15,18 @@ labels:
     - sex
     - valence
     - context
-
 train:
   batch_size: 32
   num_workers: 4
-  max_epochs: 100
+  max_epochs: 1
   lr: 1.0e-3
   weight_decay: 1.0e-5
   seed: 42
   checkpoint_dir: ckpt/voxmonitor
-  device: auto  # auto | cuda | mps | cpu
-  
+  device: auto # auto | cuda | mps | cpu
   # DeepSuite Integration
-  mlflow_experiment: null  # Set to experiment name to enable MLflow logging
-  export_formats: []  # Options: ["onnx", "torchscript", "tensor_rt", "kendryte", "tflite"]
+  mlflow_experiment: null # Set to experiment name to enable MLflow logging
+  export_formats: [] # Options: ["onnx", "torchscript", "tensor_rt", "kendryte", "tflite"]
   # Example: ["onnx", "torchscript"]
   embed_dim: 128
+  fast_dev_run: true
