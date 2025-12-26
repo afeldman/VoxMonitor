@@ -4,7 +4,7 @@
 
 data:
   root_dir: data/audio
-  key_xlsx: data/SoundwelDatasetKey.csv
+  key_xlsx: data/SoundwelDatasetKey.xlsx
   sample_rate: 16000
   max_length_sec: 5.0
   val_fraction: 0.2
@@ -18,7 +18,7 @@ labels:
 train:
   batch_size: 32
   num_workers: 4
-  max_epochs: 1
+  max_epochs: 2
   lr: 1.0e-3
   weight_decay: 1.0e-5
   seed: 42
@@ -26,7 +26,6 @@ train:
   device: auto # auto | cuda | mps | cpu
   # DeepSuite Integration
   mlflow_experiment: null # Set to experiment name to enable MLflow logging
-  export_formats: ["onnx"] # Options: ["onnx", "torchscript", "tensor_rt", "kendryte", "tflite"]
-  # Example: ["onnx", "torchscript"]
+  export_formats: ["onnx", "torchscript"] # Options: ["onnx", "torchscript", "tensor_rt", "kendryte", "tflite"]
   embed_dim: 128
-  fast_dev_run: true
+  fast_dev_run: false

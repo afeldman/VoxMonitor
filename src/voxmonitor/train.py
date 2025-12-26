@@ -16,8 +16,15 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from deepsuite.lightning_base.trainer import BaseTrainer
 
+# PyTorch 2.6 weights_only fix: Allow mse_loss for checkpoint loading
+try:
+    torch.serialization.add_safe_globals([torch.nn.functional.mse_loss])
+except Exception:
+    pass  # torch version might not have add_safe_globals
+
 from voxmonitor.data import SoundwelDataModule
 from voxmonitor.lightning import VoxMonitorLightningModule
+from voxmonitor.export_callback import CustomExportCallback
 
 
 logging.basicConfig(
@@ -137,20 +144,28 @@ def main(
   )
 
   # Get export formats from config (optional)
-  export_formats = train_cfg.get("export_formats", ["onnx"])  # e.g., ["onnx", "torchscript"]
+  export_formats = train_cfg.get("export_formats", ["onnx", "torchscript"])
   mlflow_experiment = train_cfg.get("mlflow_experiment", None)
+
+  # Add custom export callback (handles PyTorch 2.6 weights_only issue)
+  export_callback = CustomExportCallback(
+      checkpoint_dir=ckpt_dir,
+      export_formats=export_formats,
+  )
 
   logger.info("Creating DeepSuite BaseTrainer...")
   # Important: Do not pass accelerator/devices here to avoid duplicate kwargs.
+  # Disable DeepSuite's built-in export to use our custom callback instead
   trainer = BaseTrainer(
     max_epochs=max_epochs,
     log_dir=ckpt_dir,
     model_output_dir=ckpt_dir,
     early_stopping=early_stop,
     model_checkpoint=ckpt_cb,
-    enable_progress_bar = True,
-    export_formats=export_formats,
+    enable_progress_bar=True,
+    export_formats=[],  # Disabled - using custom callback instead
     fast_dev_run=fast_dev_run,
+    callbacks=[export_callback],  # Add custom export callback
   )
 
   logger.info("Starting training...")

@@ -28,12 +28,14 @@ dependencies = [
   "numpy>=1.24.0",
   "scipy>=1.10.0",
   "pandas>=2.0.0",
+  "openpyxl>=3.1.0",
   "pyyaml>=6.0.0",
   "omegaconf>=2.3.0",
   "requests>=2.31.0",
   "loguru>=0.7.3",
   "soundfile>=0.13.0",
   "rich>=13.0.0",
+  "onnxscript>=0.5.7",
 ]
 
 [project.optional-dependencies]

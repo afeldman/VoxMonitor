@@ -81,9 +81,17 @@ class SoundwelDataset(UniversalDataset):
             logger.info("Using provided metadata DataFrame...")
             self.metadata = metadata
         elif csv_path is not None:
-            # Load from CSV file
-            logger.info(f"Loading metadata from CSV: {csv_path}")
-            self.metadata = pd.read_csv(csv_path)
+            # Load from CSV/XLSX file
+            suffix = Path(csv_path).suffix.lower()
+            if suffix in {".xlsx", ".xls"}:
+                logger.info(f"Loading metadata from Excel: {csv_path}")
+                try:
+                    self.metadata = pd.read_excel(csv_path)
+                except ImportError as e:
+                    raise RuntimeError("Excel-Datei erkannt, aber 'openpyxl' fehlt. Bitte installieren: uv add openpyxl") from e
+            else:
+                logger.info(f"Loading metadata from CSV: {csv_path}")
+                self.metadata = pd.read_csv(csv_path)
         else:
             # Load from Zenodo or existing files
             self.metadata_file = self.root_dir / "metadata.pkl"
@@ -124,7 +132,12 @@ class SoundwelDataset(UniversalDataset):
             # Try CSV
             csv_file = self.root_dir / "metadata.csv"
             if csv_file.exists():
-                data = pd.read_csv(csv_file)
+                # Support CSV and Excel in cached metadata
+                suffix = csv_file.suffix.lower()
+                if suffix in {".xlsx", ".xls"}:
+                    data = pd.read_excel(csv_file)
+                else:
+                    data = pd.read_csv(csv_file)
             else:
                 raise FileNotFoundError(
                     f"Metadata not found in {self.root_dir}\n"
@@ -173,6 +186,9 @@ class SoundwelDataset(UniversalDataset):
             # Filter out NaN values and convert to string for consistent sorting
             valid_labels = self.metadata[actual_col].dropna().unique().astype(str)
             unique_labels = sorted(valid_labels)
+            # Ensure an 'UNK' class exists to handle missing/unknown values
+            if "UNK" not in unique_labels:
+                unique_labels.append("UNK")
             self.label_mappings[task] = {
                 label: idx for idx, label in enumerate(unique_labels)
             }
@@ -279,16 +295,16 @@ class SoundwelDataset(UniversalDataset):
                 continue
             
             label_value = row[actual_col]
-            # Skip NaN values
+            # Handle NaN/unknown values
             if pd.isna(label_value):
-                continue
+                label_value = "UNK"
             
             # Convert to string for consistent mapping
             label_value = str(label_value)
             
             if label_value not in self.label_mappings[task]:
-                # Unknown label, skip
-                continue
+                # Unknown label -> map to UNK
+                label_value = "UNK"
             
             label_idx = self.label_mappings[task][label_value]
             labels[task] = torch.tensor(label_idx, dtype=torch.long)
@@ -358,7 +374,14 @@ class SoundwelDataModule(AudioLoader):
             metadata = None
             csv_path_arg = None
             if self.csv_path:
-                metadata = pd.read_csv(self.csv_path)
+                suffix = Path(self.csv_path).suffix.lower()
+                if suffix in {".xlsx", ".xls"}:
+                    try:
+                        metadata = pd.read_excel(self.csv_path)
+                    except ImportError as e:
+                        raise RuntimeError("Excel-Datei erkannt, aber 'openpyxl' fehlt. Bitte installieren: uv add openpyxl") from e
+                else:
+                    metadata = pd.read_csv(self.csv_path)
                 csv_path_arg = None  # Don't pass csv_path if metadata is provided
             
             # Create train dataset (90%)
@@ -388,7 +411,14 @@ class SoundwelDataModule(AudioLoader):
             logger.info("Setting up test dataset...")
             metadata = None
             if self.csv_path:
-                metadata = pd.read_csv(self.csv_path)
+                suffix = Path(self.csv_path).suffix.lower()
+                if suffix in {".xlsx", ".xls"}:
+                    try:
+                        metadata = pd.read_excel(self.csv_path)
+                    except ImportError as e:
+                        raise RuntimeError("Excel-Datei erkannt, aber 'openpyxl' fehlt. Bitte installieren: uv add openpyxl") from e
+                else:
+                    metadata = pd.read_csv(self.csv_path)
             
             self.test_ds = SoundwelDataset(
                 root_dir=self.root_dir,

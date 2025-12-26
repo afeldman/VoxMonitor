@@ -32,3 +32,5 @@ wandb/
 
 # Config files (local overrides)
 config_local.yaml
+
+data/
